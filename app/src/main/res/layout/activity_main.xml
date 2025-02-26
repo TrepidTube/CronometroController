@@ -11,126 +11,162 @@
     <!-- Header Section -->
     <LinearLayout
         android:id="@+id/timerContainer"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_width="1342dp"
+        android:layout_height="499dp"
         android:gravity="center"
+        android:minHeight="500dp"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="64dp"
         app:layout_constraintBottom_toTopOf="@id/bottomControls"
-        app:layout_constraintTop_toBottomOf="@id/headerLayout">
+        app:layout_constraintTop_toBottomOf="@id/headerLayout"
+        tools:layout_editor_absoluteX="-2dp">
 
         <!-- Period Section -->
-
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="255dp"
+            android:layout_height="121dp"
+            android:layout_marginEnd="24dp"
             android:background="@drawable/blue_gradient_background"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_marginBottom="2dp"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Modo de manejo"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"/>
+                    android:textSize="24sp" />
 
                 <ImageView
                     android:id="@+id/ivModeArrow"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_mode_arrow"
-                    android:layout_marginStart="8dp"
-                    android:padding="2dp"/>
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="0dp"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_mode_arrow" />
             </LinearLayout>
 
             <Spinner
                 android:id="@+id/spinnerMode"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="120dp"
+                android:layout_height="41dp"
                 android:background="@drawable/spinner_background"
-                android:popupBackground="@drawable/spinner_dropdown_background"/>
+                android:minWidth="255dp"
+                android:popupBackground="@drawable/spinner_dropdown_background" />
 
         </LinearLayout>
 
+        <!-- Period Digits -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp">
+            android:layout_height="400dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
 
-            <include
-                android:id="@+id/periodDigit1"
-                layout="@layout/digit_spinner"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp" />
+                android:layout_marginBottom="16dp"
+                android:text="Periodos"
+                android:textColor="#666666"
+                android:textSize="24sp" />
 
-            <include
-                android:id="@+id/periodDigit2"
-                layout="@layout/digit_spinner"
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="24dp">
+
+                <include
+                    android:id="@+id/periodDigit1"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp" />
+
+                <include
+                    android:id="@+id/periodDigit2"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Separator -->
         <View
-            android:layout_width="2dp"
-            android:layout_height="120dp"
-            android:layout_marginHorizontal="24dp"
+            android:layout_width="6dp"
+            android:layout_height="280dp"
+            android:layout_marginHorizontal="64dp"
             android:background="#DDDDDD" />
 
         <!-- Clock Section -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="400dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
 
-            <!-- Minutes -->
-            <include
-                android:id="@+id/minuteDigit1"
-                layout="@layout/digit_spinner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp" />
-
-            <include
-                android:id="@+id/minuteDigit2"
-                layout="@layout/digit_spinner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <!-- Time Separator -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginHorizontal="8dp"
-                android:text=":"
-                android:textSize="40sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="16dp"
+                android:text="Reloj"
+                android:textColor="#666666"
+                android:textSize="24sp" />
 
-            <!-- Seconds -->
-            <include
-                android:id="@+id/secondDigit1"
-                layout="@layout/digit_spinner"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp" />
+                android:orientation="horizontal"
+                android:padding="24dp">
 
-            <include
-                android:id="@+id/secondDigit2"
-                layout="@layout/digit_spinner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                <!-- Minutes -->
+                <include
+                    android:id="@+id/minuteDigit1"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp" />
+
+                <include
+                    android:id="@+id/minuteDigit2"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <!-- Time Separator -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginHorizontal="32dp"
+                    android:text=":"
+                    android:textSize="96sp"
+                    android:textStyle="bold" />
+
+                <!-- Seconds -->
+                <include
+                    android:id="@+id/secondDigit1"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp" />
+
+                <include
+                    android:id="@+id/secondDigit2"
+                    layout="@layout/digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
@@ -139,7 +175,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="32dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <!-- IP Address -->
@@ -148,13 +184,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/blue_gradient_background"
-            android:padding="8dp"
+            android:padding="16dp"
             android:text="IP: 0.0.0.0/0"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:textSize="24sp" />
 
         <View
             android:layout_width="0dp"
-            android:layout_height="1dp"
+            android:layout_height="2dp"
             android:layout_weight="1" />
 
         <!-- Status -->
@@ -163,22 +200,24 @@
             android:layout_height="wrap_content"
             android:background="@drawable/blue_gradient_background"
             android:orientation="horizontal"
-            android:padding="4dp">
+            android:padding="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="4dp"
+                android:padding="8dp"
                 android:text="Conectado"
-                android:textColor="#FFFFFF" />
+                android:textColor="#FFFFFF"
+                android:textSize="24sp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#FFFFFF"
-                android:padding="4dp"
+                android:padding="8dp"
                 android:text="Desconectado"
-                android:textColor="#000000" />
+                android:textColor="#000000"
+                android:textSize="24sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -187,21 +226,19 @@
     <!-- Bottom Controls Section -->
     <LinearLayout
         android:id="@+id/bottomControls"
-        android:layout_width="730dp"
-        android:layout_height="161dp"
+        android:layout_width="match_parent"
+        android:layout_height="195dp"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:gravity="start"
         app:layout_constraintBottom_toBottomOf="parent"
-        tools:layout_editor_absoluteX="1dp">
-
-        <!-- Mode Selection -->
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <!-- Presets Section -->
-
         <LinearLayout
-            android:layout_width="116dp"
-            android:layout_height="match_parent"
-            android:layout_marginTop="16dp"
+            android:layout_width="358dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
             android:orientation="vertical">
 
             <TextView
@@ -209,59 +246,100 @@
                 android:layout_height="wrap_content"
                 android:text="Presets"
                 android:textColor="#666666"
-                android:textSize="12sp" />
+                android:textSize="24sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/digit_background"
-                android:padding="8dp"
-                android:text="8:88"
-                android:textSize="16sp" />
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
 
+                <!-- Minutes -->
+                <include
+                    android:id="@+id/presetMinuteDigit1"
+                    layout="@layout/preset_digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp" />
+
+                <include
+                    android:id="@+id/presetMinuteDigit2"
+                    layout="@layout/preset_digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <!-- Time Separator -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginHorizontal="8dp"
+                    android:text=":"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+
+                <!-- Seconds -->
+                <include
+                    android:id="@+id/presetSecondDigit1"
+                    layout="@layout/preset_digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp" />
+
+                <include
+                    android:id="@+id/presetSecondDigit2"
+                    layout="@layout/preset_digit_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- Espaciador flexible -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
 
         <!-- Control Buttons -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_marginTop="16dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="32dp"
             android:background="@drawable/rounded_background_white"
             android:orientation="horizontal"
-            android:padding="16dp">
+            android:padding="32dp">
 
             <ImageButton
                 android:id="@+id/btnStop"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_margin="8dp"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_margin="16dp"
                 android:background="@drawable/control_button_selector"
-                android:padding="12dp"
+                android:padding="24dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_stop" />
 
             <ImageButton
                 android:id="@+id/btnPlay"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_margin="8dp"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_margin="16dp"
                 android:background="@drawable/control_button_selector"
-                android:padding="12dp"
+                android:padding="24dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_play" />
 
             <ImageButton
                 android:id="@+id/btnPause"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_margin="8dp"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_margin="16dp"
                 android:background="@drawable/control_button_selector"
-                android:padding="12dp"
+                android:padding="24dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_pause" />
-
         </LinearLayout>
     </LinearLayout>
 

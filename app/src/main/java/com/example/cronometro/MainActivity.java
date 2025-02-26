@@ -27,6 +27,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAscending = true; // Para controlar el modo
     private View minuteDigit1, minuteDigit2, secondDigit1, secondDigit2;
     private TextView[] timeDigits = new TextView[4]; // Para minutos y segundos
+    private int presetSeconds = 0;
+    private TextView[] presetDigits = new TextView[4]; // Para los dígitos de preset
+    private TextView[] periodDigits = new TextView[2]; // Para los dígitos de periodo
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,15 +63,38 @@ public class MainActivity extends AppCompatActivity {
         setupTimeSpinner(secondDigit1);
         setupTimeSpinner(secondDigit2);
 
+        // Configurar los spinners de presets
+        setupTimeSpinner(findViewById(R.id.presetMinuteDigit1));
+        setupTimeSpinner(findViewById(R.id.presetMinuteDigit2));
+        setupTimeSpinner(findViewById(R.id.presetSecondDigit1));
+        setupTimeSpinner(findViewById(R.id.presetSecondDigit2));
+
+        // Configurar referencias a los dígitos de preset
+        View presetMinuteDigit1 = findViewById(R.id.presetMinuteDigit1);
+        View presetMinuteDigit2 = findViewById(R.id.presetMinuteDigit2);
+        View presetSecondDigit1 = findViewById(R.id.presetSecondDigit1);
+        View presetSecondDigit2 = findViewById(R.id.presetSecondDigit2);
+        
+        presetDigits[0] = presetMinuteDigit1.findViewById(R.id.tvDigit);
+        presetDigits[1] = presetMinuteDigit2.findViewById(R.id.tvDigit);
+        presetDigits[2] = presetSecondDigit1.findViewById(R.id.tvDigit);
+        presetDigits[3] = presetSecondDigit2.findViewById(R.id.tvDigit);
+
+        // Configurar referencias a los dígitos de periodo
+        View periodDigit1View = findViewById(R.id.periodDigit1);
+        View periodDigit2View = findViewById(R.id.periodDigit2);
+        periodDigits[0] = periodDigit1View.findViewById(R.id.tvDigit);
+        periodDigits[1] = periodDigit2View.findViewById(R.id.tvDigit);
+
         // Configurar botones de control
         ImageButton btnPlay = findViewById(R.id.btnPlay);
         ImageButton btnPause = findViewById(R.id.btnPause);
         ImageButton btnStop = findViewById(R.id.btnStop);
 
         btnPlay.setOnClickListener(v -> {
+            updatePresetTime(); // Actualizar el tiempo de preset antes de iniciar
             updateMaxTime();
             startTimer();
-            // Deshabilitar los botones de los spinners durante la cuenta
             setTimeSpinnersEnabled(false);
         });
 
@@ -152,6 +178,23 @@ public class MainActivity extends AppCompatActivity {
         btnDown4.setEnabled(enabled);
         btnUp4.setAlpha(alpha);
         btnDown4.setAlpha(alpha);
+
+        // Presets spinners (estos siempre están habilitados)
+        View[] presetViews = {
+            findViewById(R.id.presetMinuteDigit1),
+            findViewById(R.id.presetMinuteDigit2),
+            findViewById(R.id.presetSecondDigit1),
+            findViewById(R.id.presetSecondDigit2)
+        };
+
+        for (View view : presetViews) {
+            ImageButton btnUp = view.findViewById(R.id.btnUp);
+            ImageButton btnDown = view.findViewById(R.id.btnDown);
+            btnUp.setEnabled(true);
+            btnDown.setEnabled(true);
+            btnUp.setAlpha(1.0f);
+            btnDown.setAlpha(1.0f);
+        }
     }
 
     private void setupTimeSpinner(View spinnerView) {
@@ -223,13 +266,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void startTimer() {
         if (!isRunning) {
-            // Solo inicializar currentSeconds si no es una continuación de pausa
-            if (currentSeconds == 0 && isAscending) {
-                currentSeconds = 0; // Empezar desde 0 en modo ascendente nuevo
-            } else if (currentSeconds == maxSeconds && !isAscending) {
-                currentSeconds = maxSeconds; // Empezar desde el máximo en modo descendente nuevo
+            if (isAscending) {
+                currentSeconds = 0; // En modo ascendente siempre empezamos desde 0
+            } else if (!isRunning) {
+                currentSeconds = maxSeconds; // En modo descendente empezamos desde el máximo
             }
-            // Si no se cumple ninguna condición, continuar desde el valor actual de currentSeconds
             
             isRunning = true;
             updateDisplayTime();
@@ -245,12 +286,37 @@ public class MainActivity extends AppCompatActivity {
     private void stopTimer() {
         isRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
+        
+        // Reiniciar el contador
         if (isAscending) {
             currentSeconds = 0; // En modo ascendente, volver a 0
         } else {
             currentSeconds = maxSeconds; // En modo descendente, volver al tiempo configurado
         }
+        
+        // Reiniciar el periodo a 0
+        periodDigits[0].setText("0");
+        periodDigits[1].setText("0");
+        
         updateDisplayTime();
+    }
+
+    private void updatePresetTime() {
+        int minutes = Integer.parseInt(presetDigits[0].getText().toString()) * 10 +
+                     Integer.parseInt(presetDigits[1].getText().toString());
+        int seconds = Integer.parseInt(presetDigits[2].getText().toString()) * 10 +
+                     Integer.parseInt(presetDigits[3].getText().toString());
+        presetSeconds = minutes * 60 + seconds;
+    }
+
+    private void incrementPeriod() {
+        int currentPeriod = Integer.parseInt(periodDigits[0].getText().toString()) * 10 +
+                           Integer.parseInt(periodDigits[1].getText().toString());
+        currentPeriod++;
+        if (currentPeriod > 99) currentPeriod = 0;
+
+        periodDigits[0].setText(String.valueOf(currentPeriod / 10));
+        periodDigits[1].setText(String.valueOf(currentPeriod % 10));
     }
 
     private final Runnable timerRunnable = new Runnable() {
@@ -259,8 +325,13 @@ public class MainActivity extends AppCompatActivity {
             if (isRunning) {
                 if (isAscending) {
                     // Modo cronómetro (ascendente)
-                    updateDisplayTime();
                     currentSeconds++;
+                    
+                    // Verificar si hemos llegado a un múltiplo del tiempo preset
+                    if (presetSeconds > 0 && currentSeconds % presetSeconds == 0) {
+                        incrementPeriod();
+                    }
+                    updateDisplayTime();
                     timerHandler.postDelayed(this, 1000);
                 } else {
                     // Modo temporizador (descendente)
@@ -269,8 +340,16 @@ public class MainActivity extends AppCompatActivity {
                         updateDisplayTime();
                         timerHandler.postDelayed(this, 1000);
                     } else {
-                        isRunning = false;
-                        // Aquí puedes agregar alguna acción cuando el tiempo llegue a cero
+                        incrementPeriod();
+                        // Reiniciar al tiempo máximo para el siguiente ciclo
+                        currentSeconds = maxSeconds;
+                        updateDisplayTime();
+                        if (maxSeconds > 0) {
+                            isRunning = true;
+                            timerHandler.postDelayed(this, 1000);
+                        } else {
+                            isRunning = false;
+                        }
                     }
                 }
             }
