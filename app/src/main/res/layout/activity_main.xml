@@ -10,6 +10,66 @@
 
     <!-- Header Section -->
     <LinearLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="32dp"
+        android:clickable="false"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- IP Address -->
+        <TextView
+            android:id="@+id/tvIpAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/blue_gradient_background"
+            android:padding="16dp"
+            android:text="IP: 192.168.1.100"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:drawableEnd="@drawable/ic_edit"
+            android:drawablePadding="8dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="2dp"
+            android:layout_weight="1" />
+
+        <!-- Status -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/blue_gradient_background"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tvConnected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Conectado"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/tvDisconnected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:padding="8dp"
+                android:text="Desconectado"
+                android:textColor="#000000"
+                android:textSize="24sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Timer Container -->
+    <LinearLayout
         android:id="@+id/timerContainer"
         android:layout_width="1342dp"
         android:layout_height="499dp"
@@ -169,59 +229,6 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/headerLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="32dp"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <!-- IP Address -->
-        <TextView
-            android:id="@+id/tvIpAddress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/blue_gradient_background"
-            android:padding="16dp"
-            android:text="IP: 0.0.0.0/0"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="2dp"
-            android:layout_weight="1" />
-
-        <!-- Status -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/blue_gradient_background"
-            android:orientation="horizontal"
-            android:padding="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:text="Conectado"
-                android:textColor="#FFFFFF"
-                android:textSize="24sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:padding="8dp"
-                android:text="Desconectado"
-                android:textColor="#000000"
-                android:textSize="24sp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Timer Container -->
 
     <!-- Bottom Controls Section -->
     <LinearLayout
