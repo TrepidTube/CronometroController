@@ -3,6 +3,7 @@ package com.example.cronometro;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -12,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -20,46 +22,46 @@ import androidx.core.view.WindowInsetsCompat;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.EditText;
 import android.widget.Button;
-import android.widget.Toast;
-import java.io.PrintWriter;
-import java.net.Socket;
-import android.app.AlertDialog;
-import android.text.InputType;
-import android.widget.LinearLayout;
-import android.view.inputmethod.InputMethodManager;
-import android.view.inputmethod.EditorInfo;
-import android.content.Context;
 import android.app.Dialog;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Window;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
 
 public class MainActivity extends AppCompatActivity {
-    private Handler timerHandler = new Handler(Looper.getMainLooper());
-    private boolean isRunning = false;
-    private int currentSeconds = 0;
-    private int maxSeconds = 0;
-    private boolean isAscending = true; // Para controlar el modo
-    private View minuteDigit1, minuteDigit2, secondDigit1, secondDigit2;
-    private TextView[] timeDigits = new TextView[4]; // Para minutos y segundos
-    private int presetSeconds = 0;
-    private TextView[] presetDigits = new TextView[4]; // Para los dígitos de preset
-    private TextView[] periodDigits = new TextView[2]; // Para los dígitos de periodo
+    private static final String TAG = "Cronometro";
+    private static final int PUERTO = 8080;
+    private static String serverIp = "0.0.0.0";
     private TextView tvIpAddress;
     private TextView tvConnected;
     private TextView tvDisconnected;
     private Socket socket;
     private PrintWriter writer;
     private BufferedReader reader;
-    private String serverIp = "0.0.0.0"; // IP por defecto para conexión a la computadora
-    private static final int PUERTO = 8080;
     private boolean isConnected = false;
+    private Handler timerHandler = new Handler(Looper.getMainLooper());
+    private boolean isRunning = false;
+    private int currentSeconds = 0;
+    private int maxSeconds = 0;
+    private boolean isAscending = true;
+    private View minuteDigit1, minuteDigit2, secondDigit1, secondDigit2;
+    private static TextView[] timeDigits = new TextView[4];
+    private int presetSeconds = 0;
+    private TextView[] presetDigits = new TextView[4];
+    private TextView[] periodDigits = new TextView[2];
+    private Handler handler = new Handler(Looper.getMainLooper());
+
+
 
     @Override
-    protected void onCreate(Bundle savedInstancNeeState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -119,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnStop = findViewById(R.id.btnStop);
 
         btnPlay.setOnClickListener(v -> {
-            updatePresetTime(); // Actualizar el tiempo de preset antes de iniciar
+            updatePresetTime();
             updateMaxTime();
             startTimer();
             setTimeSpinnersEnabled(false);
@@ -127,12 +129,10 @@ public class MainActivity extends AppCompatActivity {
 
         btnPause.setOnClickListener(v -> {
             pauseTimer();
-            // Mantener los botones deshabilitados en pausa
         });
 
         btnStop.setOnClickListener(v -> {
             stopTimer();
-            // Rehabilitar los botones de los spinners
             setTimeSpinnersEnabled(true);
         });
 
@@ -151,31 +151,29 @@ public class MainActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 isAscending = position == 0;
                 
-                // Configurar la animación de rotación
                 ivModeArrow.animate()
                     .rotation(isAscending ? 0 : 180)
                     .setDuration(300)
                     .setInterpolator(new AccelerateDecelerateInterpolator())
                     .start();
 
-                // Si hay un timer en curso, detenerlo y reiniciar
                 if (isRunning) {
                     stopTimer();
                 }
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // No es necesario manejar este caso
-            }
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
 
         // Configurar la conexión IP
         tvIpAddress = findViewById(R.id.tvIpAddress);
         tvConnected = findViewById(R.id.tvConnected);
         tvDisconnected = findViewById(R.id.tvDisconnected);
-
         tvIpAddress.setText("IP: " + serverIp);
+        
+        // Configurar estado inicial de conexión
+        actualizarEstadoConexion(false);
         
         // Configurar el TextView de IP como botón
         tvIpAddress.setOnClickListener(v -> {
@@ -222,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
         btnUp4.setAlpha(alpha);
         btnDown4.setAlpha(alpha);
 
-        // Periodos spinners (se deshabilitan/habilitan junto con el reloj)
+        // Periodos spinners
         View periodDigit1View = findViewById(R.id.periodDigit1);
         View periodDigit2View = findViewById(R.id.periodDigit2);
         
@@ -241,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
         btnUpPeriod2.setAlpha(alpha);
         btnDownPeriod2.setAlpha(alpha);
 
-        // Presets spinners (estos siempre están habilitados)
+        // Presets spinners (siempre habilitados)
         View[] presetViews = {
             findViewById(R.id.presetMinuteDigit1),
             findViewById(R.id.presetMinuteDigit2),
@@ -264,10 +262,8 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnDown = spinnerView.findViewById(R.id.btnDown);
         TextView tvDigit = spinnerView.findViewById(R.id.tvDigit);
         
-        // Establecer valor inicial en 0
         tvDigit.setText("0");
 
-        // Cargar las animaciones
         Animation slideUpOut = AnimationUtils.loadAnimation(this, R.anim.slide_up_out);
         Animation slideUpIn = AnimationUtils.loadAnimation(this, R.anim.slide_up_in);
         Animation slideDownOut = AnimationUtils.loadAnimation(this, R.anim.slide_down_out);
@@ -328,48 +324,42 @@ public class MainActivity extends AppCompatActivity {
 
     private void startTimer() {
         if (!isRunning) {
-            // Solo inicializar los segundos si es un inicio nuevo (después de stop)
             if (currentSeconds == 0 && maxSeconds == 0) {
                 if (isAscending) {
-                    currentSeconds = 0; // En modo ascendente empezamos desde 0
+                    currentSeconds = 0;
                 } else {
-                    updateMaxTime(); // Actualizar maxSeconds con los valores actuales
-                    currentSeconds = maxSeconds; // En modo descendente empezamos desde el máximo
+                    updateMaxTime();
+                    currentSeconds = maxSeconds;
                 }
             }
             
             isRunning = true;
             updateDisplayTime();
             timerHandler.post(timerRunnable);
-            setTimeSpinnersEnabled(false); // Deshabilitar spinners al iniciar
+            setTimeSpinnersEnabled(false);
         }
     }
 
     private void pauseTimer() {
         isRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
-        // Habilitar los spinners cuando se pausa
         setTimeSpinnersEnabled(true);
     }
 
     private void stopTimer() {
         isRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
-        
-        // Reiniciar el contador a 0 independientemente del modo
         currentSeconds = 0;
-        
-        // Reiniciar el periodo a 0
         periodDigits[0].setText("0");
         periodDigits[1].setText("0");
-        
-        // Reiniciar todos los dígitos del reloj a 0
         for (TextView digit : timeDigits) {
             digit.setText("0");
         }
-        
-        // Actualizar el maxSeconds a 0
         maxSeconds = 0;
+
+        // Enviar datos en cero a Pantalla
+        int[] datosEnCero = new int[6]; // Por defecto se inicializa con ceros
+        envioDatos(datosEnCero);
     }
 
     private void updatePresetTime() {
@@ -393,39 +383,293 @@ public class MainActivity extends AppCompatActivity {
     private final Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
-            if (isRunning) {
+            if (!isRunning) return;
+
                 if (isAscending) {
                     currentSeconds++;
                     
                     if (presetSeconds > 0 && currentSeconds % presetSeconds == 0) {
                         incrementPeriod();
                     }
-                    updateDisplayTime();
-                    
-                    timerHandler.postDelayed(this, 1000);
                 } else {
-                    // Modo temporizador (descendente)
                     if (currentSeconds > 0) {
                         currentSeconds--;
-                        updateDisplayTime();
-                        
-                        timerHandler.postDelayed(this, 1000);
                     } else {
                         incrementPeriod();
-                        // Reiniciar al tiempo máximo para el siguiente ciclo
                         currentSeconds = maxSeconds;
-                        updateDisplayTime();
-                        if (maxSeconds > 0) {
-                            isRunning = true;
-                            timerHandler.postDelayed(this, 1000);
-                        } else {
+                    if (maxSeconds == 0) {
                             isRunning = false;
-                        }
+                        return;
                     }
                 }
             }
+
+            // Actualizar UI
+            handler.post(() -> {
+                updateDisplayTime();
+                
+                // Preparar datos para envío
+                int[] datos = new int[6];
+                try {
+                    datos[0] = Integer.parseInt(timeDigits[0].getText().toString());
+                    datos[1] = Integer.parseInt(timeDigits[1].getText().toString());
+                    datos[2] = Integer.parseInt(timeDigits[2].getText().toString());
+                    datos[3] = Integer.parseInt(timeDigits[3].getText().toString());
+                    datos[4] = Integer.parseInt(periodDigits[0].getText().toString());
+                    datos[5] = Integer.parseInt(periodDigits[1].getText().toString());
+                    
+                    // Enviar datos
+                    envioDatos(datos);
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "Error al convertir datos: " + e.getMessage());
+                }
+            });
+
+            if (isRunning) {
+                timerHandler.postDelayed(this, 1000);
+            }
         }
     };
+
+    private void envioDatos(int[] datos) {
+        // Ejecutar el envío en un hilo separado para no bloquear la UI
+        new Thread(() -> {
+            try {
+                // Usar la conexión existente en lugar de crear una nueva
+                if (socket != null && socket.isConnected() && writer != null) {
+                    // Convertir array de enteros a cadena CSV
+                    StringBuilder mensaje = new StringBuilder();
+                    for (int i = 0; i < datos.length; i++) {
+                        mensaje.append(datos[i]);
+                        if (i < datos.length - 1) {
+                            mensaje.append(",");
+                        }
+                    }
+
+                    // Enviar datos al servidor
+                    writer.println(mensaje.toString());
+                    writer.flush(); // Asegurarse de que los datos se envíen inmediatamente
+                    Log.d(TAG, "Datos enviados: " + mensaje);
+                } else {
+                    // Si no hay conexión, intentar reconectar
+                    Log.d(TAG, "No hay conexión activa, intentando reconectar...");
+                    conectarAlServidor();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error al enviar datos: " + e.getMessage());
+                handler.post(() -> {
+                    try {
+                        //Toast.makeText(MainActivity.this, "Error al enviar datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    } catch (Exception ignored) {
+                        // Ignorar errores de Toast si la actividad está destruida
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void actualizarEstadoConexion(boolean conectado) {
+        Log.d(TAG, "Actualizando estado de conexión a: " + (conectado ? "Conectado" : "Desconectado"));
+        isConnected = conectado;
+
+        // Detener cualquier animación en curso
+        tvConnected.clearAnimation();
+        tvDisconnected.clearAnimation();
+
+        // Cargar la animación de fade
+        Animation fadeAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+        fadeAnimation.setDuration(300); // Duración más corta para que sea más responsivo
+
+        // Establecer los estados inmediatamente
+        if (conectado) {
+            tvConnected.setBackgroundResource(R.drawable.blue_gradient_background);
+            tvConnected.setTextColor(getResources().getColor(android.R.color.white));
+            tvDisconnected.setBackgroundColor(getResources().getColor(android.R.color.white));
+            tvDisconnected.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            tvConnected.setBackgroundColor(getResources().getColor(android.R.color.white));
+            tvConnected.setTextColor(getResources().getColor(android.R.color.black));
+            tvDisconnected.setBackgroundResource(R.drawable.blue_gradient_background);
+            tvDisconnected.setTextColor(getResources().getColor(android.R.color.white));
+        }
+
+        // Aplicar la animación
+        tvConnected.startAnimation(fadeAnimation);
+        tvDisconnected.startAnimation(fadeAnimation);
+    }
+
+    private void conectarAlServidor() {
+        try {
+            handler.post(() -> {
+                //Toast.makeText(this, "Intentando conectar al servidor...", Toast.LENGTH_SHORT).show();
+                actualizarEstadoConexion(false);
+            });
+            
+            if (socket == null || !socket.isConnected()) {
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(serverIp, PUERTO), 5000);
+                writer = new PrintWriter(socket.getOutputStream(), true);
+                reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                
+                // Si llegamos aquí, la conexión fue exitosa
+                handler.post(() -> {
+                    //Toast.makeText(this, "¡Conexión exitosa!", Toast.LENGTH_SHORT).show();
+                    actualizarEstadoConexion(true);
+                });
+                Log.d(TAG, "Conexión establecida correctamente");
+                
+                // Enviar mensaje inicial
+                writer.println("Hello from Cronometro");
+                writer.flush();
+                Log.d(TAG, "Mensaje inicial enviado");
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error de conexión: " + e.getMessage());
+            handler.post(() -> {
+                //Toast.makeText(this, "Error de conexión: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                actualizarEstadoConexion(false);
+            });
+            desconectarDelServidor();
+        }
+    }
+
+    private void desconectarDelServidor() {
+        Log.d(TAG, "Iniciando desconexión");
+        try {
+            if (writer != null) {
+                writer.close();
+                writer = null;
+                Log.d(TAG, "Writer cerrado");
+            }
+            if (reader != null) {
+                reader.close();
+                reader = null;
+                Log.d(TAG, "Reader cerrado");
+            }
+            if (socket != null) {
+                socket.close();
+                socket = null;
+                Log.d(TAG, "Socket cerrado");
+            }
+            handler.post(() -> {
+                //Toast.makeText(this, "Desconectado del servidor", Toast.LENGTH_SHORT).show();
+                actualizarEstadoConexion(false);
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error al desconectar: " + e.getMessage());
+        }
+    }
+
+    private boolean isValidIpFormat(String ip) {
+        if (ip == null || ip.isEmpty()) return false;
+        
+        String[] parts = ip.split("\\.");
+        if (parts.length != 4) return false;
+        
+        try {
+            for (String part : parts) {
+                int value = Integer.parseInt(part);
+                if (value < 0 || value > 255) return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    private void mostrarDialogoIP() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_ip);
+        
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setWindowAnimations(android.R.style.Animation_Dialog);
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+        }
+
+        EditText editTextIp = dialog.findViewById(R.id.editTextIp);
+        Button btnAceptar = dialog.findViewById(R.id.btnAceptar);
+        Button btnCancelar = dialog.findViewById(R.id.btnCancelar);
+
+        editTextIp.setText(serverIp);
+        editTextIp.setSelectAllOnFocus(true);
+
+        // Configurar el manejo de la tecla "enter" y el botón aceptar
+        View.OnClickListener procesarIP = v -> {
+            String newIp = editTextIp.getText().toString().trim();
+            if (!newIp.isEmpty()) {
+                if (isValidIpFormat(newIp)) {
+                    // Ocultar el teclado
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null && editTextIp.getWindowToken() != null) {
+                        imm.hideSoftInputFromWindow(editTextIp.getWindowToken(), 0);
+                    }
+                    
+                    serverIp = newIp;
+                    tvIpAddress.setText("IP: " + serverIp);
+                    
+                    // Cerrar el diálogo y conectar
+                    dialog.dismiss();
+                    new Thread(this::conectarAlServidor).start();
+                } else {
+                    Toast.makeText(MainActivity.this, "Por favor ingrese una IP válida (formato: 0.0.0.0)", Toast.LENGTH_SHORT).show();
+                    editTextIp.setSelection(0, editTextIp.length());
+                }
+            } else {
+                Toast.makeText(MainActivity.this, "Por favor ingrese una IP", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        editTextIp.setOnEditorActionListener((v, actionId, event) -> {
+            if (event != null && event.getKeyCode() == android.view.KeyEvent.KEYCODE_ENTER) {
+                procesarIP.onClick(v);
+                return true;
+            }
+            return false;
+        });
+
+        btnAceptar.setOnClickListener(procesarIP);
+
+        btnCancelar.setOnClickListener(v -> {
+            // Ocultar el teclado antes de cerrar el diálogo
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null && editTextIp.getWindowToken() != null) {
+                imm.hideSoftInputFromWindow(editTextIp.getWindowToken(), 0);
+            }
+            dialog.dismiss();
+        });
+
+        // Mostrar el teclado después de un breve retraso
+        handler.postDelayed(() -> {
+            if (dialog.isShowing() && editTextIp != null) {
+                editTextIp.requestFocus();
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(editTextIp, InputMethodManager.SHOW_IMPLICIT);
+                }
+            }
+        }, 100);
+
+        dialog.setOnDismissListener(dialogInterface -> {
+            // Asegurarse de que el teclado esté oculto cuando se cierre el diálogo
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null && editTextIp.getWindowToken() != null) {
+                imm.hideSoftInputFromWindow(editTextIp.getWindowToken(), 0);
+            }
+        });
+
+        dialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        desconectarDelServidor();
+    }
 
     private void updateDisplayTime() {
         int minutes = currentSeconds / 60;
@@ -435,8 +679,6 @@ public class MainActivity extends AppCompatActivity {
         timeDigits[1].setText(String.valueOf(minutes % 10));
         timeDigits[2].setText(String.valueOf(seconds / 10));
         timeDigits[3].setText(String.valueOf(seconds % 10));
-        
-        enviarDatosAlServidor();
     }
 
     private void setupDigitSpinner(int spinnerId) {
@@ -445,10 +687,8 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnDown = spinnerView.findViewById(R.id.btnDown);
         TextView tvDigit = spinnerView.findViewById(R.id.tvDigit);
         
-        // Establecer valor inicial en 0
         tvDigit.setText("0");
 
-        // Cargar las animaciones
         Animation slideUpOut = AnimationUtils.loadAnimation(this, R.anim.slide_up_out);
         Animation slideUpIn = AnimationUtils.loadAnimation(this, R.anim.slide_up_in);
         Animation slideDownOut = AnimationUtils.loadAnimation(this, R.anim.slide_down_out);
@@ -495,181 +735,5 @@ public class MainActivity extends AppCompatActivity {
             
             tvDigit.startAnimation(slideDownOut);
         });
-    }
-
-    private void conectarAlServidor() {
-        // Mostrar mensaje de intento de conexión
-        runOnUiThread(() -> {
-            Toast.makeText(this, "Intentando conectar a " + serverIp + ":" + PUERTO, Toast.LENGTH_SHORT).show();
-            tvConnected.setVisibility(View.GONE);
-            tvDisconnected.setVisibility(View.VISIBLE);
-        });
-        
-        // Realizar la conexión en un hilo separado
-        new Thread(() -> {
-            try {
-                runOnUiThread(() -> Toast.makeText(this, "Creando socket...", Toast.LENGTH_SHORT).show());
-                
-                // Crear socket con timeout
-                socket = new Socket();
-                socket.setSoTimeout(5000); // Timeout de 5 segundos para operaciones de lectura
-                
-                runOnUiThread(() -> Toast.makeText(this, "Intentando conectar socket...", Toast.LENGTH_SHORT).show());
-                
-                // Intentar conectar con timeout de 5 segundos
-                socket.connect(new InetSocketAddress(serverIp, PUERTO), 5000);
-                
-                runOnUiThread(() -> Toast.makeText(this, "Socket conectado, configurando streams...", Toast.LENGTH_SHORT).show());
-                
-                writer = new PrintWriter(socket.getOutputStream(), true);
-                reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                
-                // Enviar mensaje de prueba
-                runOnUiThread(() -> Toast.makeText(this, "Enviando test de conexión...", Toast.LENGTH_SHORT).show());
-                writer.println("TEST_CONNECTION");
-                
-                // Esperar respuesta del servidor
-                String response = reader.readLine();
-                
-                runOnUiThread(() -> Toast.makeText(this, "Respuesta recibida: " + (response != null ? response : "null"), Toast.LENGTH_SHORT).show());
-                
-                if (response != null && response.equals("CONNECTION_OK")) {
-                    isConnected = true;
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "¡Conectado al servidor!", Toast.LENGTH_SHORT).show();
-                        tvConnected.setVisibility(View.VISIBLE);
-                        tvDisconnected.setVisibility(View.GONE);
-                    });
-
-                    // Iniciar hilo para mantener la conexión viva y recibir respuestas
-                    new Thread(this::manejarRespuestasServidor).start();
-                } else {
-                    throw new Exception("No se recibió confirmación del servidor. Respuesta: " + response);
-                }
-            } catch (Exception e) {
-                final String errorMsg = e.getMessage();
-                e.printStackTrace(); // Imprimir stack trace para debugging
-                desconectarDelServidor();
-                runOnUiThread(() -> {
-                    String mensaje = "Error al conectar: " + errorMsg;
-                    Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show();
-                    tvConnected.setVisibility(View.GONE);
-                    tvDisconnected.setVisibility(View.VISIBLE);
-                });
-            }
-        }).start();
-    }
-
-    private void manejarRespuestasServidor() {
-        try {
-            runOnUiThread(() -> Toast.makeText(this, "Iniciando manejo de respuestas del servidor", Toast.LENGTH_SHORT).show());
-            
-            String response;
-            while (isConnected && (response = reader.readLine()) != null) {
-                final String respuestaFinal = response;
-                runOnUiThread(() -> Toast.makeText(this, "Respuesta del servidor: " + respuestaFinal, Toast.LENGTH_SHORT).show());
-                
-                if (response.equals("DATA_OK")) {
-                    // Datos recibidos correctamente
-                    continue;
-                } else if (response.equals("DATA_ERROR")) {
-                    // Error en los datos
-                    runOnUiThread(() -> Toast.makeText(this, "Error en los datos enviados", Toast.LENGTH_SHORT).show());
-                    desconectarDelServidor();
-                    break;
-                }
-            }
-            
-            if (isConnected) {
-                runOnUiThread(() -> Toast.makeText(this, "Conexión cerrada por el servidor", Toast.LENGTH_SHORT).show());
-                desconectarDelServidor();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            final String errorMsg = e.getMessage();
-            runOnUiThread(() -> Toast.makeText(this, "Error en comunicación: " + errorMsg, Toast.LENGTH_SHORT).show());
-            desconectarDelServidor();
-        }
-    }
-
-    private void desconectarDelServidor() {
-        try {
-            if (writer != null) {
-                // Enviar mensaje de desconexión
-                if (isConnected) {
-                    writer.println("DISCONNECT");
-                }
-                writer.close();
-            }
-            if (reader != null) {
-                reader.close();
-            }
-            if (socket != null) {
-                socket.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        isConnected = false;
-        socket = null;
-        writer = null;
-        reader = null;
-        
-        runOnUiThread(() -> {
-            Toast.makeText(this, "Desconectado del servidor", Toast.LENGTH_SHORT).show();
-            tvConnected.setVisibility(View.GONE);
-            tvDisconnected.setVisibility(View.VISIBLE);
-        });
-    }
-
-    private void enviarDatosAlServidor() {
-        if (isConnected && writer != null) {
-            try {
-                String periodo = periodDigits[0].getText().toString() + periodDigits[1].getText().toString();
-                String minutos = timeDigits[0].getText().toString() + timeDigits[1].getText().toString();
-                String segundos = timeDigits[2].getText().toString() + timeDigits[3].getText().toString();
-                String reloj = minutos + ":" + segundos;
-                
-                writer.println(periodo + "|" + reloj);
-            } catch (Exception e) {
-                e.printStackTrace();
-                desconectarDelServidor();
-            }
-        }
-    }
-
-    private void mostrarDialogoIP() {
-        final Dialog dialog = new Dialog(this);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_ip);
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
-        EditText editTextIp = dialog.findViewById(R.id.editTextIp);
-        Button btnAceptar = dialog.findViewById(R.id.btnAceptar);
-        Button btnCancelar = dialog.findViewById(R.id.btnCancelar);
-
-        // Mostrar la IP actual
-        editTextIp.setText(serverIp);
-
-        btnAceptar.setOnClickListener(v -> {
-            String newIp = editTextIp.getText().toString().trim();
-            if (!newIp.isEmpty()) {
-                serverIp = newIp;
-                tvIpAddress.setText("IP: " + serverIp);
-                new Thread(() -> conectarAlServidor()).start();
-            }
-            dialog.dismiss();
-        });
-
-        btnCancelar.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        desconectarDelServidor();
     }
 }

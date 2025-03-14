@@ -1,44 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    android:layout_height="300dp"
+    android:layout_height="200dp"
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/digit_background"
-    android:padding="8dp">
+    android:padding="4dp">
 
     <!-- Flecha Arriba -->
     <ImageButton
         android:id="@+id/btnUp"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:background="@drawable/arrow_button_selector_with_disabled"
         android:src="@drawable/ic_arrow_up"
         android:scaleType="fitCenter"
-        android:padding="8dp"
-        android:layout_margin="4dp"
+        android:padding="6dp"
+        android:layout_margin="2dp"
         android:tint="#FFFFFF" />
 
     <!-- Dígito -->
     <TextView
         android:id="@+id/tvDigit"
-        android:layout_width="80dp"
-        android:layout_height="120dp"
+        android:layout_width="60dp"
+        android:layout_height="80dp"
         android:gravity="center"
         android:text="0"
-        android:textSize="80sp"
+        android:textSize="48sp"
         android:textStyle="bold" />
 
     <!-- Flecha Abajo -->
     <ImageButton
         android:id="@+id/btnDown"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:background="@drawable/arrow_button_selector_with_disabled"
         android:src="@drawable/ic_arrow_down"
         android:scaleType="fitCenter"
-        android:padding="8dp"
-        android:layout_margin="4dp"
+        android:padding="6dp"
+        android:layout_margin="2dp"
         android:tint="#FFFFFF" />
 
 </LinearLayout> 

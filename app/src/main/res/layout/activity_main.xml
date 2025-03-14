@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="32dp"
+        android:padding="16dp"
         android:clickable="false"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -24,10 +24,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/blue_gradient_background"
-            android:padding="16dp"
+            android:padding="8dp"
             android:text="IP: 192.168.1.100"
             android:textColor="#FFFFFF"
-            android:textSize="24sp"
+            android:textSize="20sp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
@@ -43,7 +43,6 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/blue_gradient_background"
             android:orientation="horizontal"
             android:padding="8dp">
 
@@ -53,33 +52,33 @@
                 android:layout_height="wrap_content"
                 android:padding="8dp"
                 android:text="Conectado"
-                android:textColor="#FFFFFF"
-                android:textSize="24sp" />
+                android:background="#FFFFFF"
+                android:textColor="#000000"
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/tvDisconnected"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="#FFFFFF"
+                android:background="@drawable/blue_gradient_background"
                 android:padding="8dp"
                 android:text="Desconectado"
-                android:textColor="#000000"
-                android:textSize="24sp" />
+                android:textColor="#FFFFFF"
+                android:textSize="20sp" />
         </LinearLayout>
     </LinearLayout>
 
     <!-- Timer Container -->
     <LinearLayout
         android:id="@+id/timerContainer"
-        android:layout_width="1342dp"
-        android:layout_height="499dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:gravity="center"
-        android:minHeight="500dp"
+        android:minHeight="300dp"
         android:orientation="horizontal"
-        android:padding="64dp"
+        android:padding="32dp"
         app:layout_constraintBottom_toTopOf="@id/bottomControls"
-        app:layout_constraintTop_toBottomOf="@id/headerLayout"
-        tools:layout_editor_absoluteX="-2dp">
+        app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
         <!-- Period Section -->
         <LinearLayout
@@ -102,7 +101,7 @@
                     android:layout_height="wrap_content"
                     android:text="Modo de manejo"
                     android:textColor="#FFFFFF"
-                    android:textSize="24sp" />
+                    android:textSize="20sp" />
 
                 <ImageView
                     android:id="@+id/ivModeArrow"
@@ -137,7 +136,7 @@
                 android:layout_marginBottom="16dp"
                 android:text="Periodos"
                 android:textColor="#666666"
-                android:textSize="24sp" />
+                android:textSize="20sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -181,7 +180,7 @@
                 android:layout_marginBottom="16dp"
                 android:text="Reloj"
                 android:textColor="#666666"
-                android:textSize="24sp" />
+                android:textSize="20sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -208,9 +207,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:layout_marginHorizontal="32dp"
+                    android:layout_marginHorizontal="16dp"
                     android:text=":"
-                    android:textSize="96sp"
+                    android:textSize="48sp"
                     android:textStyle="bold" />
 
                 <!-- Seconds -->
