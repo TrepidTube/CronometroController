@@ -281,6 +281,17 @@ public class MainActivity extends AppCompatActivity {
                 public void onAnimationEnd(Animation animation) {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideUpIn);
+                    
+                    // Si es un spinner de preset y estamos en modo descendente, actualizar el reloj
+                    if (spinnerView.getId() == R.id.presetMinuteDigit1 || 
+                        spinnerView.getId() == R.id.presetMinuteDigit2 || 
+                        spinnerView.getId() == R.id.presetSecondDigit1 || 
+                        spinnerView.getId() == R.id.presetSecondDigit2) {
+                        if (!isAscending) {
+                            updatePresetTime();
+                            updateDisplayTimeFromPreset();
+                        }
+                    }
                 }
 
                 @Override
@@ -302,6 +313,17 @@ public class MainActivity extends AppCompatActivity {
                 public void onAnimationEnd(Animation animation) {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideDownIn);
+                    
+                    // Si es un spinner de preset y estamos en modo descendente, actualizar el reloj
+                    if (spinnerView.getId() == R.id.presetMinuteDigit1 || 
+                        spinnerView.getId() == R.id.presetMinuteDigit2 || 
+                        spinnerView.getId() == R.id.presetSecondDigit1 || 
+                        spinnerView.getId() == R.id.presetSecondDigit2) {
+                        if (!isAscending) {
+                            updatePresetTime();
+                            updateDisplayTimeFromPreset();
+                        }
+                    }
                 }
 
                 @Override
@@ -328,8 +350,14 @@ public class MainActivity extends AppCompatActivity {
                 if (isAscending) {
                     currentSeconds = 0;
                 } else {
-                    updateMaxTime();
-                    currentSeconds = maxSeconds;
+                    // En modo descendente, usar el tiempo del preset si está disponible
+                    if (presetSeconds > 0) {
+                        currentSeconds = presetSeconds;
+                        maxSeconds = presetSeconds;
+                    } else {
+                        updateMaxTime();
+                        currentSeconds = maxSeconds;
+                    }
                 }
             }
             
@@ -679,6 +707,17 @@ public class MainActivity extends AppCompatActivity {
         timeDigits[1].setText(String.valueOf(minutes % 10));
         timeDigits[2].setText(String.valueOf(seconds / 10));
         timeDigits[3].setText(String.valueOf(seconds % 10));
+    }
+
+    private void updateDisplayTimeFromPreset() {
+        // Copiar los valores del preset al reloj
+        timeDigits[0].setText(presetDigits[0].getText());
+        timeDigits[1].setText(presetDigits[1].getText());
+        timeDigits[2].setText(presetDigits[2].getText());
+        timeDigits[3].setText(presetDigits[3].getText());
+        
+        // Actualizar el tiempo máximo
+        updateMaxTime();
     }
 
     private void setupDigitSpinner(int spinnerId) {
