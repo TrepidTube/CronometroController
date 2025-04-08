@@ -413,21 +413,27 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if (!isRunning) return;
 
-                if (isAscending) {
-                    currentSeconds++;
-                    
-                    if (presetSeconds > 0 && currentSeconds % presetSeconds == 0) {
-                        incrementPeriod();
-                    }
-                } else {
-                    if (currentSeconds > 0) {
-                        currentSeconds--;
-                    } else {
-                        incrementPeriod();
-                        currentSeconds = maxSeconds;
-                    if (maxSeconds == 0) {
+            if (isAscending) {
+                currentSeconds++;
+                
+                if (presetSeconds > 0 && currentSeconds % presetSeconds == 0) {
+                    incrementPeriod();
+                }
+            } else {
+                if (currentSeconds >= 0) {
+                    if (currentSeconds == 0) {
+                        // Si hay un preset establecido, reiniciar el tiempo
+                        if (presetSeconds > 0) {
+                            incrementPeriod();
+                            currentSeconds = maxSeconds;
+                        } else {
+                            // Si no hay preset, detener el temporizador
+                            updateDisplayTime();
                             isRunning = false;
-                        return;
+                            return;
+                        }
+                    } else {
+                        currentSeconds--;
                     }
                 }
             }

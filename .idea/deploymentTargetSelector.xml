@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-14T19:28:44.777366100Z">
+        <DropdownSelection timestamp="2025-04-08T20:36:36.599901100Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\diego\.android\avd\Copy_of_Pixel_3a_API_34.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\diego\.android\avd\Cronotab.avd" />
             </handle>
           </Target>
         </DropdownSelection>
