@@ -332,7 +332,7 @@
                 android:layout_width="96dp"
                 android:layout_height="96dp"
                 android:layout_margin="16dp"
-                android:background="@drawable/control_button_selector"
+                android:background="@drawable/play_button_blue_selector"
                 android:padding="24dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_play" />

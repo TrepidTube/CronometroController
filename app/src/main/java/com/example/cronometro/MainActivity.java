@@ -34,10 +34,13 @@ import java.io.InputStreamReader;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
+import android.os.SystemClock;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Cronometro";
     private static final int PUERTO = 8080;
+    private static final String PREFS_NAME = "CronometroPrefs";
+    private static final String LAST_IP_KEY = "lastIP";
     private static String serverIp = "0.0.0.0";
     private TextView tvIpAddress;
     private TextView tvConnected;
@@ -57,8 +60,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView[] presetDigits = new TextView[4];
     private TextView[] periodDigits = new TextView[2];
     private Handler handler = new Handler(Looper.getMainLooper());
-
-
+    private long startTime = 0;
+    private boolean isUpdateMode = true; // Variable para controlar el modo del botón Play
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +73,33 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Recuperar la última IP utilizada
+        serverIp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .getString(LAST_IP_KEY, "0.0.0.0");
+
+        // Configurar la conexión IP
+        tvIpAddress = findViewById(R.id.tvIpAddress);
+        tvConnected = findViewById(R.id.tvConnected);
+        tvDisconnected = findViewById(R.id.tvDisconnected);
+        tvIpAddress.setText("IP: " + serverIp);
+        
+        // Configurar estado inicial de conexión
+        actualizarEstadoConexion(false);
+        
+        // Configurar el TextView de IP como botón
+        tvIpAddress.setOnClickListener(v -> {
+            if (!isConnected) {
+                mostrarDialogoIP();
+            } else {
+                desconectarDelServidor();
+            }
+        });
+
+        // Intentar conexión automática si hay una IP válida guardada
+        if (isValidIpFormat(serverIp) && !serverIp.equals("0.0.0.0")) {
+            new Thread(this::conectarAlServidor).start();
+        }
 
         // Configurar los spinners de dígitos para periodos
         setupDigitSpinner(R.id.periodDigit1);
@@ -121,19 +151,58 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnStop = findViewById(R.id.btnStop);
 
         btnPlay.setOnClickListener(v -> {
-            updatePresetTime();
-            updateMaxTime();
-            startTimer();
-            setTimeSpinnersEnabled(false);
+            if (isUpdateMode) {
+                // Modo actualización: envía los valores de Periodo, Reloj y Preset a Pantalla
+                updatePresetTime();
+                
+                // Enviar comando TIME con los valores del reloj
+                String[] timeValues = new String[4];
+                for (int i = 0; i < 4; i++) {
+                    timeValues[i] = timeDigits[i].getText().toString();
+                }
+                envioDatos("TIME", timeValues);
+                
+                // Enviar comando PERIOD con los valores del periodo
+                String[] periodValues = new String[2];
+                periodValues[0] = periodDigits[0].getText().toString();
+                periodValues[1] = periodDigits[1].getText().toString();
+                envioDatos("PERIOD", periodValues);
+
+                // Enviar comando PRESET con los valores del preset
+                String[] presetValues = new String[4];
+                for (int i = 0; i < 4; i++) {
+                    presetValues[i] = presetDigits[i].getText().toString();
+                }
+                envioDatos("PRESET", presetValues);
+                
+                // Cambiar a modo inicio
+                isUpdateMode = false;
+                btnPlay.setBackgroundResource(R.drawable.play_button_green_selector);
+            } else {
+                // Modo inicio: inicia el cronómetro en ambas apps
+                updatePresetTime();
+                updateMaxTime();
+                startTimer();
+                setTimeSpinnersEnabled(false);
+                
+                // Enviar comando PLAY sin datos adicionales
+                envioDatos("PLAY");
+            }
         });
 
         btnPause.setOnClickListener(v -> {
             pauseTimer();
+            envioDatos("PAUSE");
         });
 
         btnStop.setOnClickListener(v -> {
             stopTimer();
             setTimeSpinnersEnabled(true);
+            envioDatos("STOP");
+            
+            // Volver a modo actualización
+            isUpdateMode = true;
+            btnPlay.setBackgroundResource(R.drawable.play_button_blue_selector);
         });
 
         // Configurar el Spinner de modos
@@ -160,28 +229,13 @@ public class MainActivity extends AppCompatActivity {
                 if (isRunning) {
                     stopTimer();
                 }
+                
+                // Enviar modo actual
+                envioDatos("MODE", isAscending ? "ASC" : "DESC");
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        // Configurar la conexión IP
-        tvIpAddress = findViewById(R.id.tvIpAddress);
-        tvConnected = findViewById(R.id.tvConnected);
-        tvDisconnected = findViewById(R.id.tvDisconnected);
-        tvIpAddress.setText("IP: " + serverIp);
-        
-        // Configurar estado inicial de conexión
-        actualizarEstadoConexion(false);
-        
-        // Configurar el TextView de IP como botón
-        tvIpAddress.setOnClickListener(v -> {
-            if (!isConnected) {
-                mostrarDialogoIP();
-            } else {
-                desconectarDelServidor();
-            }
         });
     }
 
@@ -282,15 +336,13 @@ public class MainActivity extends AppCompatActivity {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideUpIn);
                     
-                    // Si es un spinner de preset y estamos en modo descendente, actualizar el reloj
-                    if (spinnerView.getId() == R.id.presetMinuteDigit1 || 
-                        spinnerView.getId() == R.id.presetMinuteDigit2 || 
-                        spinnerView.getId() == R.id.presetSecondDigit1 || 
-                        spinnerView.getId() == R.id.presetSecondDigit2) {
-                        if (!isAscending) {
-                            updatePresetTime();
-                            updateDisplayTimeFromPreset();
-                        }
+                    // Ya no enviamos actualización a Pantalla
+                    // Solo actualizamos el tiempo si estamos en modo descendente y es parte del preset
+                    if (!isAscending && (spinnerView.getId() == R.id.presetMinuteDigit1 || 
+                                         spinnerView.getId() == R.id.presetMinuteDigit2 || 
+                                         spinnerView.getId() == R.id.presetSecondDigit1 || 
+                                         spinnerView.getId() == R.id.presetSecondDigit2)) {
+                        updateDisplayTimeFromPreset();
                     }
                 }
 
@@ -314,15 +366,13 @@ public class MainActivity extends AppCompatActivity {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideDownIn);
                     
-                    // Si es un spinner de preset y estamos en modo descendente, actualizar el reloj
-                    if (spinnerView.getId() == R.id.presetMinuteDigit1 || 
-                        spinnerView.getId() == R.id.presetMinuteDigit2 || 
-                        spinnerView.getId() == R.id.presetSecondDigit1 || 
-                        spinnerView.getId() == R.id.presetSecondDigit2) {
-                        if (!isAscending) {
-                            updatePresetTime();
-                            updateDisplayTimeFromPreset();
-                        }
+                    // Ya no enviamos actualización a Pantalla
+                    // Solo actualizamos el tiempo si estamos en modo descendente y es parte del preset
+                    if (!isAscending && (spinnerView.getId() == R.id.presetMinuteDigit1 || 
+                                         spinnerView.getId() == R.id.presetMinuteDigit2 || 
+                                         spinnerView.getId() == R.id.presetSecondDigit1 || 
+                                         spinnerView.getId() == R.id.presetSecondDigit2)) {
+                        updateDisplayTimeFromPreset();
                     }
                 }
 
@@ -346,32 +396,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void startTimer() {
         if (!isRunning) {
-            if (currentSeconds == 0 && maxSeconds == 0) {
-                if (isAscending) {
-                    currentSeconds = 0;
-                } else {
-                    // En modo descendente, usar el tiempo del preset si está disponible
-                    if (presetSeconds > 0) {
-                        currentSeconds = presetSeconds;
-                        maxSeconds = presetSeconds;
-                    } else {
-                        updateMaxTime();
-                        currentSeconds = maxSeconds;
-                    }
-                }
-            }
-            
             isRunning = true;
-            updateDisplayTime();
-            timerHandler.post(timerRunnable);
-            setTimeSpinnersEnabled(false);
+            if (isAscending) {
+                // En modo ascendente, comenzar desde el valor establecido en el reloj
+                int minutes = Integer.parseInt(timeDigits[0].getText().toString()) * 10 +
+                             Integer.parseInt(timeDigits[1].getText().toString());
+                int seconds = Integer.parseInt(timeDigits[2].getText().toString()) * 10 +
+                             Integer.parseInt(timeDigits[3].getText().toString());
+                currentSeconds = minutes * 60 + seconds;
+                startTime = SystemClock.elapsedRealtime() - (currentSeconds * 1000L);
+            } else {
+                // En modo descendente, continuamos desde el tiempo restante
+                startTime = SystemClock.elapsedRealtime() - ((maxSeconds - currentSeconds) * 1000L);
+            }
+            timerHandler.postDelayed(timerRunnable, 100);
         }
     }
 
     private void pauseTimer() {
-        isRunning = false;
-        timerHandler.removeCallbacks(timerRunnable);
-        setTimeSpinnersEnabled(true);
+        if (isRunning) {
+            isRunning = false;
+            timerHandler.removeCallbacks(timerRunnable);
+        }
     }
 
     private void stopTimer() {
@@ -384,10 +430,7 @@ public class MainActivity extends AppCompatActivity {
             digit.setText("0");
         }
         maxSeconds = 0;
-
-        // Enviar datos en cero a Pantalla
-        int[] datosEnCero = new int[6]; // Por defecto se inicializa con ceros
-        envioDatos(datosEnCero);
+        updateDisplayTime();
     }
 
     private void updatePresetTime() {
@@ -413,27 +456,33 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if (!isRunning) return;
 
+            long currentTime = SystemClock.elapsedRealtime();
+            long deltaTime = currentTime - startTime;
+            
+            // Convertir milisegundos a segundos
+            int secondsElapsed = (int) (deltaTime / 1000);
+            
             if (isAscending) {
-                currentSeconds++;
+                int previousSeconds = currentSeconds;
+                currentSeconds = secondsElapsed;
                 
-                if (presetSeconds > 0 && currentSeconds % presetSeconds == 0) {
+                // Solo incrementar cuando pasamos por un múltiplo del preset
+                if (presetSeconds > 0 && 
+                    previousSeconds / presetSeconds != currentSeconds / presetSeconds && 
+                    currentSeconds > 0) {
                     incrementPeriod();
                 }
             } else {
-                if (currentSeconds >= 0) {
-                    if (currentSeconds == 0) {
-                        // Si hay un preset establecido, reiniciar el tiempo
-                        if (presetSeconds > 0) {
-                            incrementPeriod();
-                            currentSeconds = maxSeconds;
-                        } else {
-                            // Si no hay preset, detener el temporizador
-                            updateDisplayTime();
-                            isRunning = false;
-                            return;
-                        }
-                    } else {
-                        currentSeconds--;
+                // En modo descendente, calcular el tiempo restante
+                if (maxSeconds > 0) {
+                    currentSeconds = maxSeconds - secondsElapsed;
+                    
+                    if (currentSeconds <= 0) {
+                        // Incrementar periodo cuando llega a 0
+                        incrementPeriod();
+                        // Reiniciar el temporizador para el siguiente ciclo
+                        startTime = SystemClock.elapsedRealtime();
+                        currentSeconds = maxSeconds;
                     }
                 }
             }
@@ -441,63 +490,31 @@ public class MainActivity extends AppCompatActivity {
             // Actualizar UI
             handler.post(() -> {
                 updateDisplayTime();
-                
-                // Preparar datos para envío
-                int[] datos = new int[6];
-                try {
-                    datos[0] = Integer.parseInt(timeDigits[0].getText().toString());
-                    datos[1] = Integer.parseInt(timeDigits[1].getText().toString());
-                    datos[2] = Integer.parseInt(timeDigits[2].getText().toString());
-                    datos[3] = Integer.parseInt(timeDigits[3].getText().toString());
-                    datos[4] = Integer.parseInt(periodDigits[0].getText().toString());
-                    datos[5] = Integer.parseInt(periodDigits[1].getText().toString());
-                    
-                    // Enviar datos
-                    envioDatos(datos);
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "Error al convertir datos: " + e.getMessage());
-                }
             });
 
             if (isRunning) {
-                timerHandler.postDelayed(this, 1000);
+                // Programar la próxima actualización con un intervalo fijo
+                timerHandler.postDelayed(this, 100); // Actualizar cada 100ms para mayor suavidad
             }
         }
     };
 
-    private void envioDatos(int[] datos) {
-        // Ejecutar el envío en un hilo separado para no bloquear la UI
+    private void envioDatos(String comando, String... parametros) {
+        if (!isConnected) return;
+        
         new Thread(() -> {
             try {
-                // Usar la conexión existente en lugar de crear una nueva
                 if (socket != null && socket.isConnected() && writer != null) {
-                    // Convertir array de enteros a cadena CSV
-                    StringBuilder mensaje = new StringBuilder();
-                    for (int i = 0; i < datos.length; i++) {
-                        mensaje.append(datos[i]);
-                        if (i < datos.length - 1) {
-                            mensaje.append(",");
-                        }
+                    StringBuilder mensaje = new StringBuilder(comando);
+                    if (parametros != null && parametros.length > 0) {
+                        mensaje.append("|").append(String.join(",", parametros));
                     }
-
-                    // Enviar datos al servidor
                     writer.println(mensaje.toString());
-                    writer.flush(); // Asegurarse de que los datos se envíen inmediatamente
-                    Log.d(TAG, "Datos enviados: " + mensaje);
-                } else {
-                    // Si no hay conexión, intentar reconectar
-                    Log.d(TAG, "No hay conexión activa, intentando reconectar...");
-                    conectarAlServidor();
+                    writer.flush();
+                    Log.d(TAG, "Comando enviado: " + mensaje);
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error al enviar datos: " + e.getMessage());
-                handler.post(() -> {
-                    try {
-                        //Toast.makeText(MainActivity.this, "Error al enviar datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    } catch (Exception ignored) {
-                        // Ignorar errores de Toast si la actividad está destruida
-                    }
-                });
+                Log.e(TAG, "Error al enviar comando: " + e.getMessage());
             }
         }).start();
     }
@@ -644,6 +661,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                     
                     serverIp = newIp;
+                    // Guardar la nueva IP
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        .edit()
+                        .putString(LAST_IP_KEY, serverIp)
+                        .apply();
+                        
                     tvIpAddress.setText("IP: " + serverIp);
                     
                     // Cerrar el diálogo y conectar
@@ -751,6 +774,8 @@ public class MainActivity extends AppCompatActivity {
                 public void onAnimationEnd(Animation animation) {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideUpIn);
+                    
+                    // Ya no enviamos actualización a Pantalla
                 }
 
                 @Override
@@ -772,6 +797,8 @@ public class MainActivity extends AppCompatActivity {
                 public void onAnimationEnd(Animation animation) {
                     tvDigit.setText(String.valueOf(newValue));
                     tvDigit.startAnimation(slideDownIn);
+                    
+                    // Ya no enviamos actualización a Pantalla
                 }
 
                 @Override
