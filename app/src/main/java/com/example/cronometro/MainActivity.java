@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler handler = new Handler(Looper.getMainLooper());
     private long startTime = 0;
     private boolean isUpdateMode = true; // Variable para controlar el modo del botón Play
+    private ImageButton btnPlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
         periodDigits[1] = periodDigit2View.findViewById(R.id.tvDigit);
 
         // Configurar botones de control
-        ImageButton btnPlay = findViewById(R.id.btnPlay);
+        btnPlay = findViewById(R.id.btnPlay);
         ImageButton btnPause = findViewById(R.id.btnPause);
         ImageButton btnStop = findViewById(R.id.btnStop);
 
@@ -154,6 +155,12 @@ public class MainActivity extends AppCompatActivity {
             if (isUpdateMode) {
                 // Modo actualización: envía los valores de Periodo, Reloj y Preset a Pantalla
                 updatePresetTime();
+                
+                // Si el modo es descendente, establecer currentSeconds al valor de presetSeconds
+                if (!isAscending) {
+                    currentSeconds = presetSeconds;
+                    updateDisplayTime();
+                }
                 
                 // Enviar comando TIME con los valores del reloj
                 String[] timeValues = new String[4];
@@ -423,7 +430,11 @@ public class MainActivity extends AppCompatActivity {
     private void stopTimer() {
         isRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
+        if (isAscending) {
         currentSeconds = 0;
+        } else {
+            currentSeconds = presetSeconds;
+        }
         periodDigits[0].setText("0");
         periodDigits[1].setText("0");
         for (TextView digit : timeDigits) {
@@ -480,9 +491,21 @@ public class MainActivity extends AppCompatActivity {
                     if (currentSeconds <= 0) {
                         // Incrementar periodo cuando llega a 0
                         incrementPeriod();
-                        // Reiniciar el temporizador para el siguiente ciclo
-                        startTime = SystemClock.elapsedRealtime();
-                        currentSeconds = maxSeconds;
+                        // Mostrar que el conteo llegó a 00:00
+                        updateDisplayTime();
+                        // Agregar un pequeño retardo antes de pausar
+                        handler.postDelayed(() -> {
+                            // Pausar el cronómetro
+                            pauseTimer();
+                            // Enviar señal de pausa
+                            envioDatos("PAUSE");
+                            // Reiniciar el botón de inicio
+                            isUpdateMode = true;
+                            btnPlay.setBackgroundResource(R.drawable.play_button_blue_selector);
+                            // Desbloquear los spinners de tiempo
+                            setTimeSpinnersEnabled(true);
+                        }, 500); // Retardo de 500ms
+                        return;
                     }
                 }
             }
