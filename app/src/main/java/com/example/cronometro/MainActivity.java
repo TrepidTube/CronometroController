@@ -35,6 +35,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
 import android.os.SystemClock;
+import androidx.appcompat.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Cronometro";
@@ -156,8 +157,26 @@ public class MainActivity extends AppCompatActivity {
                 // Modo actualización: envía los valores de Periodo, Reloj y Preset a Pantalla
                 updatePresetTime();
                 
-                // Si el modo es descendente, establecer currentSeconds al valor de presetSeconds
+                // Si el modo es descendente, verificar si se han ingresado valores
                 if (!isAscending) {
+                    boolean hasPresetValues = presetSeconds > 0;
+                    boolean hasClockValues = false;
+                    for (TextView digit : timeDigits) {
+                        if (!digit.getText().toString().equals("0")) {
+                            hasClockValues = true;
+                            break;
+                        }
+                    }
+                    if (!hasPresetValues && !hasClockValues) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                        builder.setTitle("Alerta")
+                            .setMessage("Es necesario establecer un valor en el Reloj.")
+                            .setPositiveButton("OK", (dialog, which) -> {
+                                // Acción al presionar "Aceptar"
+                            })
+                            .show();
+                        return;
+                    }
                     currentSeconds = presetSeconds;
                     updateDisplayTime();
                 }
@@ -497,14 +516,12 @@ public class MainActivity extends AppCompatActivity {
                         handler.postDelayed(() -> {
                             // Pausar el cronómetro
                             pauseTimer();
-                            // Enviar señal de pausa
-                            envioDatos("PAUSE");
                             // Reiniciar el botón de inicio
                             isUpdateMode = true;
                             btnPlay.setBackgroundResource(R.drawable.play_button_blue_selector);
                             // Desbloquear los spinners de tiempo
                             setTimeSpinnersEnabled(true);
-                        }, 500); // Retardo de 500ms
+                        }, 200); // Retardo de 500ms
                         return;
                     }
                 }
