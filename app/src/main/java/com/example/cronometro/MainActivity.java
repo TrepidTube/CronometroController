@@ -187,6 +187,9 @@ public class MainActivity extends AppCompatActivity {
                     timeValues[i] = timeDigits[i].getText().toString();
                 }
                 envioDatos("TIME", timeValues);
+
+                // Enviar comando MODE con el modo del contador
+                envioDatos("MODE", isAscending ? "ASC" : "DESC");
                 
                 // Enviar comando PERIOD con los valores del periodo
                 String[] periodValues = new String[2];
