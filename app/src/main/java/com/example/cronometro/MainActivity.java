@@ -161,12 +161,19 @@ public class MainActivity extends AppCompatActivity {
                 if (!isAscending) {
                     boolean hasPresetValues = presetSeconds > 0;
                     boolean hasClockValues = false;
+                    int relojSeconds = 0;
                     for (TextView digit : timeDigits) {
                         if (!digit.getText().toString().equals("0")) {
                             hasClockValues = true;
-                            break;
                         }
                     }
+                    // Calcular el valor del reloj
+                    int minutes = Integer.parseInt(timeDigits[0].getText().toString()) * 10 +
+                                  Integer.parseInt(timeDigits[1].getText().toString());
+                    int seconds = Integer.parseInt(timeDigits[2].getText().toString()) * 10 +
+                                  Integer.parseInt(timeDigits[3].getText().toString());
+                    relojSeconds = minutes * 60 + seconds;
+
                     if (!hasPresetValues && !hasClockValues) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(this);
                         builder.setTitle("Alerta")
@@ -177,7 +184,12 @@ public class MainActivity extends AppCompatActivity {
                             .show();
                         return;
                     }
-                    currentSeconds = presetSeconds;
+                    // Si hay valor en el reloj, usarlo; si no, usar el preset
+                    if (hasClockValues) {
+                        currentSeconds = relojSeconds;
+                    } else {
+                        currentSeconds = presetSeconds;
+                    }
                     updateDisplayTime();
                 }
                 
@@ -426,6 +438,8 @@ public class MainActivity extends AppCompatActivity {
     private void startTimer() {
         if (!isRunning) {
             isRunning = true;
+            timerHandler.removeCallbacks(timerRunnable); // Detener cualquier timer previo
+            btnPlay.setEnabled(false); // Desactivar el botón de play
             if (isAscending) {
                 // En modo ascendente, comenzar desde el valor establecido en el reloj
                 int minutes = Integer.parseInt(timeDigits[0].getText().toString()) * 10 +
@@ -446,14 +460,16 @@ public class MainActivity extends AppCompatActivity {
         if (isRunning) {
             isRunning = false;
             timerHandler.removeCallbacks(timerRunnable);
+            btnPlay.setEnabled(true); // Reactivar el botón de play
         }
     }
 
     private void stopTimer() {
         isRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
+        btnPlay.setEnabled(true); // Reactivar el botón de play
         if (isAscending) {
-        currentSeconds = 0;
+            currentSeconds = 0;
         } else {
             currentSeconds = presetSeconds;
         }
@@ -524,7 +540,8 @@ public class MainActivity extends AppCompatActivity {
                             btnPlay.setBackgroundResource(R.drawable.play_button_blue_selector);
                             // Desbloquear los spinners de tiempo
                             setTimeSpinnersEnabled(true);
-                        }, 200); // Retardo de 500ms
+                            btnPlay.setEnabled(true);
+                        }, 200);
                         return;
                     }
                 }
