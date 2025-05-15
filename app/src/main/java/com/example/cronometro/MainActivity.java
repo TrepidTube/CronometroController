@@ -98,11 +98,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Intentar conexión automática si hay una IP válida guardada
-        if (isValidIpFormat(serverIp) && !serverIp.equals("0.0.0.0")) {
-            new Thread(this::conectarAlServidor).start();
-        }
-
         // Configurar los spinners de dígitos para periodos
         setupDigitSpinner(R.id.periodDigit1);
         setupDigitSpinner(R.id.periodDigit2);
@@ -633,6 +628,8 @@ public class MainActivity extends AppCompatActivity {
                 writer.println("Hello from Cronometro");
                 writer.flush();
                 Log.d(TAG, "Mensaje inicial enviado");
+
+                startListeningToServer();
             }
             
         } catch (Exception e) {
@@ -787,6 +784,21 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         desconectarDelServidor();
     }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        desconectarDelServidor();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Intentar conexión automática si hay una IP válida guardada
+        if (isValidIpFormat(serverIp) && !serverIp.equals("0.0.0.0")) {
+            new Thread(this::conectarAlServidor).start();
+        }
+    }
 
     private void updateDisplayTime() {
         int minutes = currentSeconds / 60;
@@ -867,5 +879,22 @@ public class MainActivity extends AppCompatActivity {
             
             tvDigit.startAnimation(slideDownOut);
         });
+    }
+
+    private void startListeningToServer() {
+        new Thread(() -> {
+            try {
+                String line;
+                while (reader != null && (line = reader.readLine()) != null) {
+                    Log.d(TAG, "Mensaje recibido del servidor: " + line);
+                    if (line.trim().equalsIgnoreCase("DESTROY")) {
+                        runOnUiThread(this::desconectarDelServidor);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error leyendo del servidor: " + e.getMessage());
+            }
+        }).start();
     }
 }
